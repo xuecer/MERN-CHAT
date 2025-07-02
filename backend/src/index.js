@@ -1,22 +1,33 @@
 import express from "express";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth.route.js";
-import messageRoutes from "./routes/message.route.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+
 import { connectDB } from "./lib/db.js";
 
-// 确保在其他操作之前加载环境变量
+import authRoutes from "./routes/auth.route.js";
+import messageRoutes from "./routes/message.route.js";
+
 dotenv.config();
 
 const app = express();
 
-// 添加中间件
-app.use(express.json()); // 用于解析 JSON 请求体
+const PORT = process.env.PORT;
+
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use("/api/auth", authRoutes);
-app.use("/api/message", messageRoutes);
+app.use("/api/messages", messageRoutes);
 
-const PORT = process.env.PORT || 5001;
-
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log("server is running on PORT:" + PORT);
   connectDB();
 });
