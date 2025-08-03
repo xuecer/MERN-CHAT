@@ -5,6 +5,7 @@ import cloudinary from "../lib/cloudinary.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
+    //由 protectRoute 中间件验证用户身份后附加到请求对象上的。
     const loggedInUserId = req.user._id;
     const filteredUsers = await User.find({
       _id: { $ne: loggedInUserId },

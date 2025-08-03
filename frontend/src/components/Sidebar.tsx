@@ -33,6 +33,7 @@ const Sidebar = () => {
           <label className="cursor-pointer flex items-center gap-2">
             <input
               type="checkbox"
+              //不写checked会？
               checked={showOnlineOnly}
               onChange={(e) => setShowOnlineOnly(e.target.checked)}
               className="checkbox checkbox-sm"
@@ -50,6 +51,7 @@ const Sidebar = () => {
           <button
             key={user._id}
             onClick={() => setSelectedUser(user)}
+            //为什么会重新渲染？
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors

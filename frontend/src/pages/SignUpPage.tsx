@@ -24,6 +24,7 @@ const SignUpPage = () => {
 
   const { signup, isSigningUp } = useAuthStore();
 
+  //前端快速校验
   const validateForm = () => {
     if (!formData.fullName.trim()) return toast.error("Full name is required");
     if (!formData.email.trim()) return toast.error("Email is required");
@@ -35,12 +36,12 @@ const SignUpPage = () => {
 
     return true;
   };
-
+  // 无刷新
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const success = validateForm();
-
+    //与事件绑定不会因渲染而触发
     if (success === true) signup(formData);
   };
 
@@ -124,6 +125,7 @@ const SignUpPage = () => {
                   }
                 />
                 <button
+                  //在一个 <form> 中，一个没有 type 的 <button> 默认是 type="submit"
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}

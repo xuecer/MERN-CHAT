@@ -18,6 +18,7 @@ import { Toaster } from "react-hot-toast";
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
   const { theme } = useThemeStore();
+  //checkAuth 是一个**“自动”发生的过程，它与应用的生命周期**绑定。
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
