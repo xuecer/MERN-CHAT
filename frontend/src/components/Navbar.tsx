@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import ConnectionStatus from "./ConnectionStatus";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
@@ -25,6 +26,9 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* 连接状态指示器 */}
+            {authUser && <ConnectionStatus />}
+
             <Link
               to={"/settings"}
               className={`
