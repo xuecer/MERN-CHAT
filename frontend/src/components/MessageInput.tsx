@@ -10,6 +10,7 @@ const MessageInput = () => {
   const { sendMessage } = useChatStore();
 
   const handleImageChange = (e) => {
+    //e.target.files: 这是文件输入框最独特的属性。它不是一个简单的字符串值，而是一个 FileList 对象。可以把它看作一个只读的、类似数组的列表，里面装着用户选择的所有文件。
     const file = e.target.files[0];
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
@@ -17,14 +18,15 @@ const MessageInput = () => {
     }
 
     const reader = new FileReader();
+    reader.readAsDataURL(file);
     reader.onloadend = () => {
       setImagePreview(reader.result);
     };
-    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
     setImagePreview(null);
+    //保证 onChange 事件能够被可靠地触发
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -47,7 +49,7 @@ const MessageInput = () => {
     }
   };
 
-  retu rn (
+  return (
     <div className="p-4 w-full">
       {imagePreview && (
         <div className="mb-3 flex items-center gap-2">
@@ -58,6 +60,7 @@ const MessageInput = () => {
               className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
             />
             <button
+              //为什么会重新渲染
               onClick={removeImage}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300
               flex items-center justify-center"
@@ -82,6 +85,7 @@ const MessageInput = () => {
             type="file"
             accept="image/*"
             className="hidden"
+            //？
             ref={fileInputRef}
             onChange={handleImageChange}
           />
