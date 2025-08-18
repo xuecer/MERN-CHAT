@@ -2,6 +2,9 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
+import socketPerformanceMonitor from "../lib/socketPerformanceMonitor";
+// @ts-ignore - 忽略类型检查
+import { usePerformanceStore } from "../store/usePerformanceStore";
 
 const BASE_URL =
   import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
@@ -231,14 +234,27 @@ export const useAuthStore = create((set, get) => ({
     set({ connectionStatus: "connecting" });
 
     // 创建socket连接
+    const startTime = Date.now();
     const newSocket = io(BASE_URL, {
       query: { userId: authUser._id },
       reconnection: false, // 禁用自动重连，我们自己管理重连
     });
 
+    // 添加性能监控
+    socketPerformanceMonitor.monitorSocketConnect(newSocket);
+
     // 连接事件
     newSocket.on("connect", () => {
       console.log("Socket connected:", newSocket.id);
+      // 记录连接耗时（更精确，不依赖 socket.id 初始化时机）
+      try {
+        const { recordSocketOperation } = usePerformanceStore.getState();
+        if (recordSocketOperation) {
+          recordSocketOperation("connect", Date.now() - startTime, {
+            socketId: newSocket.id,
+          });
+        }
+      } catch {}
       set({
         reconnectAttempts: 0,
         connectionStatus: "connected",

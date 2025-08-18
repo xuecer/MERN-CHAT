@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import ConnectionStatus from "./ConnectionStatus";
+// @ts-ignore - 忽略类型检查
+import PerformanceButton from "./PerformanceButton";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
@@ -28,6 +30,9 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             {/* 连接状态指示器 */}
             {authUser && <ConnectionStatus />}
+
+            {/* 性能监控按钮 */}
+            <PerformanceButton />
 
             <Link
               to={"/settings"}

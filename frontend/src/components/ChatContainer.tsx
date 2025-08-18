@@ -1,4 +1,6 @@
 import { useChatStore } from "../store/useChatStore";
+// @ts-ignore - 忽略类型检查
+import withPerformanceMonitoring from "../lib/withPerformanceMonitoring";
 import { useEffect, useRef } from "react";
 
 import ChatHeader from "./ChatHeader";
@@ -96,4 +98,6 @@ const ChatContainer = () => {
     </div>
   );
 };
-export default ChatContainer;
+export default withPerformanceMonitoring(ChatContainer, {
+  name: "ChatContainer",
+});

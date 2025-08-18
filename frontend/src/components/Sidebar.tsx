@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+// @ts-ignore - 忽略类型检查
+import withPerformanceMonitoring from "../lib/withPerformanceMonitoring";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
@@ -93,4 +95,4 @@ const Sidebar = () => {
     </aside>
   );
 };
-export default Sidebar;
+export default withPerformanceMonitoring(Sidebar, { name: "Sidebar" });

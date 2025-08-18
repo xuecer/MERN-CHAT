@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import socketPerformanceMonitor from "../lib/socketPerformanceMonitor";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
@@ -51,8 +52,13 @@ export const useChatStore = create((set, get) => ({
     if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
 
+    // 监听新消息事件
     socket.on("newMessage", (newMessage) => {
+      // 记录消息接收性能
+      socketPerformanceMonitor.monitorMessageReceive(socket, "newMessage");
+
       const isMessageSentFromSelectedUser =
         newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
