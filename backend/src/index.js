@@ -30,9 +30,8 @@ app.use("/api/messages", messageRoutes);
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  // 直接传一个正则表达式对象，匹配所有路径
-  app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
 }
 
