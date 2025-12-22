@@ -31,8 +31,8 @@ const LoginPage = () => {
               >
                 <MessageSquare className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold mt-2">Welcome Back</h1>
-              <p className="text-base-content/60">Sign in to your account</p>
+              <h1 className="text-2xl font-bold mt-2">欢迎回来</h1>
+              <p className="text-base-content/60">登录您的账号</p>
             </div>
           </div>
 
@@ -40,7 +40,7 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Email</span>
+                <span className="label-text font-medium">邮箱</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -60,7 +60,7 @@ const LoginPage = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium">Password</span>
+                <span className="label-text font-medium">密码</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -97,19 +97,19 @@ const LoginPage = () => {
               {isLoggingIn ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Loading...
+                  加载中...
                 </>
               ) : (
-                "Sign in"
+                "登录"
               )}
             </button>
           </form>
 
           <div className="text-center">
             <p className="text-base-content/60">
-              Don&apos;t have an account?{" "}
+              还没有账号？{" "}
               <Link to="/signup" className="link link-primary">
-                Create account
+                创建账号
               </Link>
             </p>
           </div>
@@ -118,9 +118,9 @@ const LoginPage = () => {
 
       {/* Right Side - Image/Pattern */}
       <AuthImagePattern
-        title={"Welcome back!"}
+        title={"欢迎回来！"}
         subtitle={
-          "Sign in to continue your conversations and catch up with your messages."
+          "登录以继续您的对话并查看您的消息。"
         }
       />
     </div>

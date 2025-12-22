@@ -2,15 +2,13 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import socketPerformanceMonitor from "../lib/socketPerformanceMonitor";
-// @ts-ignore - 忽略类型检查
-import { usePerformanceStore } from "../store/usePerformanceStore";
 
 const BASE_URL =
   import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
 // 配置参数
-const HEARTBEAT_INTERVAL = 30000; // 30秒心跳间隔
+const HEARTBEAT_INTERVAL_VISIBLE = 30000; // 页面可见时：30秒心跳
+const HEARTBEAT_INTERVAL_HIDDEN = 60000; // 页面不可见时：60秒心跳（降低频率）
 const RECONNECT_DELAY_BASE = 1000; // 基础重连延迟（1秒）
 const MAX_RECONNECT_DELAY = 30000; // 最大重连延迟（30秒）
 const MAX_RECONNECT_ATTEMPTS = 10; // 最大重连次数
@@ -35,9 +33,9 @@ export const useAuthStore = create((set, get) => ({
   reconnectAttempts: 0,
   reconnectTimer: null as NodeJS.Timeout | null,
   heartbeatTimer: null as NodeJS.Timeout | null,
+  pingTimeoutTimer: null as NodeJS.Timeout | null, // 新增：用于清理单次Ping的超时检测
   debounceTimer: null as NodeJS.Timeout | null,
   lastPingTime: 0,
-
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
@@ -57,7 +55,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/signup", data);
       set({ authUser: res.data });
-      toast.success("Account created successfully");
+      toast.success("账号创建成功");
       get().connectSocket();
     } catch (error) {
       toast.error(error.response.data.message);
@@ -71,7 +69,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
-      toast.success("Logged in successfully");
+      toast.success("登录成功");
 
       get().connectSocket();
     } catch (error) {
@@ -85,7 +83,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       await axiosInstance.post("/auth/logout");
       set({ authUser: null });
-      toast.success("Logged out successfully");
+      toast.success("退出登录成功");
       get().disconnectSocket();
     } catch (error) {
       toast.error(error.response.data.message);
@@ -97,7 +95,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.put("/auth/update-profile", data);
       set({ authUser: res.data });
-      toast.success("Profile updated successfully");
+      toast.success("个人资料更新成功");
     } catch (error) {
       console.log("error in update profile:", error);
       toast.error(error.response.data.message);
@@ -131,6 +129,15 @@ export const useAuthStore = create((set, get) => ({
       clearInterval(heartbeatTimer);
     }
 
+    // 根据页面可见性决定心跳间隔
+    const interval = document.hidden
+      ? HEARTBEAT_INTERVAL_HIDDEN
+      : HEARTBEAT_INTERVAL_VISIBLE;
+
+    console.log(
+      `Starting heartbeat with interval: ${interval}ms (hidden: ${document.hidden})`
+    );
+
     // 设置新的心跳
     const newHeartbeatTimer = setInterval(() => {
       const { socket } = get();
@@ -144,24 +151,26 @@ export const useAuthStore = create((set, get) => ({
 
       // 设置超时检测
       setTimeout(() => {
-        const now = Date.now();
         const { lastPingTime } = get();
-        // 如果超过5秒没有收到pong，认为连接已断开
-        if (now - lastPingTime > 5000) {
+        // 修复逻辑：如果 lastPingTime 仍不为 0，说明在5秒内没有收到 pong 重置它
+        // 不需要计算时间差，只要标志位没复位就是超时
+        if (lastPingTime !== 0) {
           console.log("Heartbeat timeout, reconnecting...");
           socket.disconnect();
-          get().scheduleReconnect();
+          // disconnect 事件会自动触发 scheduleReconnect
         }
       }, 5000);
-    }, HEARTBEAT_INTERVAL);
+    }, interval);
 
     set({ heartbeatTimer: newHeartbeatTimer });
+  },
 
-    // 监听pong响应
+  // 页面可见性变化处理
+  handleVisibilityChange: () => {
     const { socket } = get();
-    socket.on("pong", () => {
-      set({ lastPingTime: 0 }); // 重置，表示收到响应
-    });
+    if (socket && socket.connected) {
+      get().startHeartbeat();
+    }
   },
 
   // 停止心跳检测
@@ -220,10 +229,10 @@ export const useAuthStore = create((set, get) => ({
 
   // 内部连接实现
   _connectSocket: () => {
-    const { authUser, socket } = get();
+    const { authUser, socket, connectionStatus } = get();
 
-    // 避免重复连接
-    if (socket?.connected) return;
+    // 避免重复连接 (增加 connecting 状态检查)
+    if (socket?.connected || connectionStatus === "connecting") return;
 
     // 如果已有socket，先断开
     if (socket) {
@@ -234,32 +243,30 @@ export const useAuthStore = create((set, get) => ({
     set({ connectionStatus: "connecting" });
 
     // 创建socket连接
-    const startTime = Date.now();
     const newSocket = io(BASE_URL, {
       query: { userId: authUser._id },
       reconnection: false, // 禁用自动重连，我们自己管理重连
     });
 
-    // 添加性能监控
-    socketPerformanceMonitor.monitorSocketConnect(newSocket);
-
     // 连接事件
     newSocket.on("connect", () => {
       console.log("Socket connected:", newSocket.id);
-      // 记录连接耗时（更精确，不依赖 socket.id 初始化时机）
-      try {
-        const { recordSocketOperation } = usePerformanceStore.getState();
-        if (recordSocketOperation) {
-          recordSocketOperation("connect", Date.now() - startTime, {
-            socketId: newSocket.id,
-          });
-        }
-      } catch {}
       set({
         reconnectAttempts: 0,
         connectionStatus: "connected",
       });
       get().startHeartbeat();
+
+      // 监听页面可见性变化
+      document.addEventListener(
+        "visibilitychange",
+        get().handleVisibilityChange
+      );
+    });
+
+    // 监听心跳响应 (新增位置)
+    newSocket.on("pong", () => {
+      set({ lastPingTime: 0 }); // 重置，表示收到响应
     });
 
     // 断开事件

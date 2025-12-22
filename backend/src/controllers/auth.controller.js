@@ -2,6 +2,7 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -30,9 +31,8 @@ export const signup = async (req, res) => {
     });
 
     if (newUser) {
-      // generate jwt token here
-      generateToken(newUser._id, res);
       await newUser.save();
+      generateToken(newUser._id, res);
 
       res.status(201).json({
         _id: newUser._id,
@@ -107,7 +107,13 @@ export const updateProfile = async (req, res) => {
     res.status(200).json(updatedUser);
   } catch (error) {
     console.log("error in update profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+    // 增加更详细的错误日志
+    if (error.error) {
+      console.log("Cloudinary error details:", error.error);
+    }
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -116,6 +122,44 @@ export const checkAuth = (req, res) => {
     res.status(200).json(req.user);
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "No Refresh Token Provided" });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
+    );
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid Refresh Token" });
+    }
+
+    // 生成新的 Access Token
+    const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    res.cookie("jwt", accessToken, {
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV !== "development",
+    });
+
+    res.status(200).json({ message: "Token Refreshed" });
+  } catch (error) {
+    console.log("Error in refreshToken controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

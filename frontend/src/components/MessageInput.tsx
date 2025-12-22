@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -7,13 +8,17 @@ const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, selectedUser } = useChatStore();
+  const { socket } = useAuthStore();
+
+  const lastTypingTimeRef = useRef(0);
+  const typingTimeoutRef = useRef(null);
 
   const handleImageChange = (e) => {
     //e.target.files: 这是文件输入框最独特的属性。它不是一个简单的字符串值，而是一个 FileList 对象。可以把它看作一个只读的、类似数组的列表，里面装着用户选择的所有文件。
     const file = e.target.files[0];
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      toast.error("请选择图片文件");
       return;
     }
 
@@ -30,6 +35,32 @@ const MessageInput = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setText(value);
+
+    // Typing logic
+    if (!socket || !selectedUser) return;
+
+    const now = Date.now();
+    const throttleDelay = 2000; // 2 seconds
+
+    // Emit typing event (Throttled)
+    if (now - lastTypingTimeRef.current > throttleDelay) {
+      socket.emit("typing", { receiverId: selectedUser._id });
+      lastTypingTimeRef.current = now;
+    }
+
+    // Clear previous stop timer
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    // Set new stop timer (Debounced)
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("stopTyping", { receiverId: selectedUser._id });
+      typingTimeoutRef.current = null;
+    }, 3000); // Stop typing after 3s of inactivity
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
@@ -44,6 +75,15 @@ const MessageInput = () => {
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+
+      // Emit stopTyping immediately when message is sent
+      if (socket && selectedUser) {
+        socket.emit("stopTyping", { receiverId: selectedUser._id });
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = null;
+        }
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -56,7 +96,7 @@ const MessageInput = () => {
           <div className="relative">
             <img
               src={imagePreview}
-              alt="Preview"
+              alt="预览"
               className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
             />
             <button
@@ -77,9 +117,9 @@ const MessageInput = () => {
           <input
             type="text"
             className="w-full input input-bordered rounded-lg input-sm sm:input-md"
-            placeholder="Type a message..."
+            placeholder="输入消息..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleInputChange}
           />
           <input
             type="file"

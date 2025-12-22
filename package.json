@@ -1,0 +1,14 @@
+{
+  "name": "MERN-CHAT",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "pnpm install --filter backend && pnpm install --filter frontend && pnpm --filter frontend build",
+    "start": "pnpm run start --filter backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.22.0"
+}

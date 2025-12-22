@@ -1,6 +1,4 @@
 import { useChatStore } from "../store/useChatStore";
-// @ts-ignore - 忽略类型检查
-import withPerformanceMonitoring from "../lib/withPerformanceMonitoring";
 import { useEffect, useRef } from "react";
 
 import ChatHeader from "./ChatHeader";
@@ -8,6 +6,8 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
+
+import { Virtuoso } from "react-virtuoso";
 
 const ChatContainer = () => {
   const {
@@ -18,8 +18,7 @@ const ChatContainer = () => {
     subscribeToMessages,
     unsubscribeFromMessages,
   } = useChatStore();
-  const { authUser } = useAuthStore();
-  const messageEndRef = useRef(null);
+  const { authUser, socket } = useAuthStore();
 
   useEffect(() => {
     getMessages(selectedUser._id);
@@ -32,13 +31,8 @@ const ChatContainer = () => {
     getMessages,
     subscribeToMessages,
     unsubscribeFromMessages,
+    socket,
   ]);
-
-  useEffect(() => {
-    if (messageEndRef.current && messages) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
 
   if (isMessagesLoading) {
     return (
@@ -54,14 +48,24 @@ const ChatContainer = () => {
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+      <Virtuoso
+        style={{ flex: 1, overflowX: "hidden" }}
+        data={messages}
+        // 自动滚动到底部行为：平滑滚动
+        followOutput="smooth"
+        // 初始位置：直接显示最后一条消息
+        initialTopMostItemIndex={messages.length - 1}
+        // 列表样式：保持原有的 padding 和 spacing
+        // 修复：移除 space-y-4，因为它在 Virtuoso 中可能导致计算错误；
+        // 移除 p-4 放到内部 div 或通过 css 处理，这里先保留 p-4 但确保 overflow-x 隐藏
+        className="w-full"
+        itemContent={(index, message) => (
           <div
             key={message._id}
+            // 修复：将 p-4 移到这里或确保外层不溢出
             className={`chat ${
               message.senderId === authUser._id ? "chat-end" : "chat-start"
-            }`}
-            ref={messageEndRef}
+            } px-4 pb-4`}
           >
             <div className=" chat-image avatar">
               <div className="size-10 rounded-full border">
@@ -71,7 +75,7 @@ const ChatContainer = () => {
                       ? authUser.profilePic || "/avatar.png"
                       : selectedUser.profilePic || "/avatar.png"
                   }
-                  alt="profile pic"
+                  alt="头像"
                 />
               </div>
             </div>
@@ -84,20 +88,18 @@ const ChatContainer = () => {
               {message.image && (
                 <img
                   src={message.image}
-                  alt="Attachment"
+                  alt="附件"
                   className="sm:max-w-[200px] rounded-md mb-2"
                 />
               )}
               {message.text && <p>{message.text}</p>}
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
 
       <MessageInput />
     </div>
   );
 };
-export default withPerformanceMonitoring(ChatContainer, {
-  name: "ChatContainer",
-});
+export default ChatContainer;
