@@ -33,7 +33,10 @@ axiosInstance.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       // 如果请求本身就是检查登录状态的接口，不需要刷新token，直接失败即可
-      if (originalRequest.url === "/auth/check" || originalRequest.url.includes("/auth/check")) {
+      if (
+        originalRequest.url === "/auth/check" ||
+        originalRequest.url.includes("/auth/check")
+      ) {
         return Promise.reject(error);
       }
 

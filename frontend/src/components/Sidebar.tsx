@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, memo } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
-import { Users } from "lucide-react";
+import { Users, MessageSquare } from "lucide-react";
 
 // 提取 SidebarItem 组件并使用 memo 优化
 const SidebarItem = memo(({ user, isSelected, isOnline, onClick }) => (
@@ -38,7 +38,12 @@ const SidebarItem = memo(({ user, isSelected, isOnline, onClick }) => (
 
 SidebarItem.displayName = "SidebarItem";
 
-const Sidebar = () => {
+interface SidebarProps {
+  onGroupChatClick: () => void;
+  onPrivateChatClick: () => void;
+}
+
+const Sidebar = ({ onGroupChatClick, onPrivateChatClick }: SidebarProps) => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
     useChatStore();
 
@@ -65,8 +70,9 @@ const Sidebar = () => {
   const handleUserClick = useCallback(
     (user) => {
       setSelectedUser(user);
+      onPrivateChatClick();
     },
-    [setSelectedUser]
+    [setSelectedUser, onPrivateChatClick]
   );
 
   if (isUsersLoading) return <SidebarSkeleton />;
@@ -74,6 +80,16 @@ const Sidebar = () => {
   return (
     <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="border-b border-base-300 w-full p-5">
+        {/* 群聊按钮 */}
+        <button
+          onClick={onGroupChatClick}
+          className="w-full p-3 mb-3 flex items-center gap-3 
+                     hover:bg-base-300 rounded-lg transition-colors"
+        >
+          <MessageSquare className="size-6" />
+          <span className="font-medium hidden lg:block">全局群聊</span>
+        </button>
+
         <div className="flex items-center gap-2">
           <Users className="size-6" />
           <span className="font-medium hidden lg:block">联系人</span>

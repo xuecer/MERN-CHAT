@@ -10,13 +10,22 @@ const messageSchema = new mongoose.Schema(
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // 群聊消息不需要receiverId
     },
     text: {
       type: String,
     },
     image: {
       type: String,
+    },
+    messageType: {
+      type: String,
+      enum: ["private", "group", "system"],
+      default: "private",
+    },
+    groupId: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }
